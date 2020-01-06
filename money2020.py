@@ -8,17 +8,21 @@ Filename: money2020.py
 """
 
 import os
+from datetime import datetime
 
 MY_ACCOUNTS = {'Cancel': []}
 DOLLAR_RATE = 1500
-# accounts = ['Exit', 'Bank - NBK', 'BOB - Souyoula', 'Rabih Cash LL', 'Rabih Saving LL']
+DATE_FORMAT = '%d-%m-%Y'
+
+MAIN_MENU = ['Exit', 'Add New Account', 'Add Transaction', 'List Accounts']
+
 A_CURRENCIES = ['Cancel', 'LBP', 'USD', 'EUR']
 A_TYPE = ['Cancel', 'Bank', 'Cash']
-T_TYPE = ['Cancel', 'expense', 'income']
+
+T_TYPE = ['Cancel', 'Expense', 'Income']
 T_PAYEE = ['Cancel', 'Rabih Fawaz', 'Ramzi Fawaz']
 T_EXPENSE_TYPE = ['Cancel']
 T_MEMO = ['Cancel']
-MAIN_MENU = ['Exit', 'Add New Account', 'Add Transaction', 'List Accounts']
 
 
 class Account:
@@ -53,9 +57,9 @@ class Account:
 
     def Transaction(self, t_type, t_date, t_amount, t_payee, t_exp_type, t_memo):
         self.transactions.append([t_type, t_date, t_amount, t_payee, t_exp_type, t_memo])
-        if t_type == 'expense':
+        if t_type.lower() == 'expense':
             self.a_balance -= t_amount
-        elif t_type == 'income':
+        elif t_type.lower() == 'income':
             self.a_balance += t_amount
 
 
@@ -63,12 +67,17 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def add_new_account():
+def pause(text: str) -> None:
+    input(text)
+    return None
+
+
+def add_new_account() -> str:
     """
     Creates new account and updates the Dict MY_ACCOUNT
 
-    :return: list of created Account
-    :rtype: list
+    :return: a_name String of account name
+    :rtype: str
     """
     created_ok: bool = False
     a_name_ok: bool = False
@@ -81,10 +90,10 @@ def add_new_account():
                 list_enumerated(List, False)
                 a_name = input('Enter new account name:')
                 if a_name == '' or a_name == '0':
-                    return
+                    return ''
                 elif a_name in List:
                     print('Account already exist.')
-                    return
+                    return ''
                 else:
                     a_name_ok = True
             question: str = input('Account with default values? [Yes|No]')
@@ -96,44 +105,29 @@ def add_new_account():
             elif question.lower() == 'no':
                 # non default values
                 a_opening_balance: float = float(input('Enter opening balance:'))
-                a_currency: str = select_val(A_CURRENCIES, 'CURRENCIES', 'currency')
-                a_type: str = select_val(A_TYPE, 'ACCOUNT TYPE', 'type')
+                a_currency: str = select_val(A_CURRENCIES, 'CURRENCIES', 'currency', True)
+                a_type: str = select_val(A_TYPE, 'ACCOUNT TYPE', 'type', True)
                 A: Account = Account(a_name, a_opening_balance, a_currency, a_type)
                 # update MY_ACCOUNT dict
                 MY_ACCOUNTS[a_name] = [A]
             created_ok = True
-            return MY_ACCOUNTS[a_name]
+            return a_name
         except Exception as e:
             print('Error! Enter a valid account name.', e)
-    return [A]
+    return a_name
 
 
 def add_account(A: Account) -> bool:
     """
+    Adds the A Account to the Dict MY_ACCOUNT
 
-    :param A:
-    :type A:
-    :return:
-    :rtype:
+    :param A: Account to add to the Dict MY_ACCOUNT
+    :type A: Account
+    :return: [True|False] if account added
+    :rtype: bool
     """
-    # print(type(A))
-    # print(A)
-    # print(A.a_name)
-    # print(type(MY_ACCOUNTS))
-    # return True
-
     if A.a_name not in MY_ACCOUNTS:
         MY_ACCOUNTS[A.a_name] = [A]
-        #     # MY_ACCOUNTS[T.a_name] = {'a_id': T.a_id,
-        #     #                          'a_name': T.a_name,
-        #     #                          'a_type': T.a_type,
-        #     #                          'a_number': T.a_number,
-        #     #                          'a_comment': T.a_comment,
-        #     #                          'a_fav': T.a_fav,
-        #     #                          'a_opening_balance': T.a_opening_balance,
-        #     #                          'a_min_balance': T.a_min_balance,
-        #     #                          'a_balance': T.a_balance,
-        #     #                          'a_currency': T.a_currency}
         return True
     else:
         print('Error, Account [{}] already exists'.format(A.a_name))
@@ -182,14 +176,19 @@ def list_accounts_menu():
 def add_transaction_menu():
     # TODO: check this function
     selected_list_no = [account for (index, account) in enumerate(MY_ACCOUNTS)]
-    selected_account = select_val(selected_list_no, 'ACCOUNT LIST', 'Account no')
+    selected_account = select_val(selected_list_no, 'ACCOUNT LIST', 'Account no', True)
     # print('selected_account:', selected_account)
     if selected_account == 'Cancel':
-        return
-    elif selected_account not in MY_ACCOUNTS:
-        print('New Account added {}'.format(selected_account))
+        # return
+        # elif selected_account not in MY_ACCOUNTS:
+        # else:
+        selected_account = add_new_account()
+        if selected_account == '':
+            return
+        else:
+            print('New Account added {}'.format(selected_account))
 
-        add_account(Account(selected_account))
+        # add_account(Account(selected_account))
 
     add_transaction(selected_account)
 
@@ -201,7 +200,7 @@ def print_title(TITLE):
 
 def main():
     # A: Account
-    # add_account_list()
+    add_account_list()
     # add_new_account()
     # print(MY_ACCOUNTS)
     # print_account_list()
@@ -210,21 +209,65 @@ def main():
 
 
 def add_transaction(account):
-    # TODO: check the inputs if empty and check for errors
+    # TODO: check the t_date + Add transfer transaction type
     list_transactions(account)
-    t_type = select_val(T_TYPE, 'New Transaction', 'Type of Transaction')
+    selection_ok = False
+    t_amount_ok = False
+    t_amount: float = 0.0
+    while not selection_ok:
+        try:
+            t_type = select_val(T_TYPE, 'New Transaction', 'Type of Transaction', True)
+            if t_type == 'Cancel':
+                return
 
-    t_date = input('Date               :')
-    t_amount = int(input('Amount             :'))
+            t_date = input('Date               :')
+            if t_date == '':
+                t_date = datetime.date(datetime.today()).strftime(DATE_FORMAT)
+                print(t_date)
+            while not t_amount_ok:
+                try:
+                    t_amount = float(input('Amount             :'))
+                    if t_amount == 0:
+                        print('Error, amount could not be {}'.format(t_amount))
+                        return
+                    else:
+                        t_amount_ok = True
+                except ValueError as v:
+                    print('Error!!!, ', v)
+                    return
 
-    t_payee = select_val(T_PAYEE, 'PAYEES', 'Payee')
-    t_exp_type = select_val(T_EXPENSE_TYPE, 'EXPENSES/INCOMES TYPES', 'Expense/Income Type')
-    t_memo = select_val(T_MEMO, 'MEMO', 'Memo')
-    MY_ACCOUNTS[account][0].Transaction(t_type, t_date, t_amount, t_payee, t_exp_type, t_memo)
+            t_payee = select_val(T_PAYEE, 'PAYEES', 'Payee')
+            if t_payee == '':
+                return
+            t_exp_type = select_val(T_EXPENSE_TYPE, 'EXPENSES/INCOMES TYPES', 'Expense/Income Type')
+            if t_exp_type == '':
+                return
+            t_memo = select_val(T_MEMO, 'MEMO', 'Memo')
+
+            MY_ACCOUNTS[account][0].Transaction(t_type, t_date, t_amount, t_payee, t_exp_type, t_memo)
+            selection_ok = True
+        except Exception as e:
+            print('Error, ', e)
     list_transactions(account)
 
 
-def select_val(List, title, input_string, locked=False):
+def select_val(List: list, title: str, input_string: str, locked: bool = False) -> str:
+    """
+    This function let's you choose from enumerated list the values according to
+    either the index or entering new values and updating the list if locked is False
+
+    :param List: list of values for selection
+    :type List: list
+    :param title: the title of the selection
+    :type title: str
+    :param input_string: question of selection
+    :type input_string: str
+    :param locked: [True|False] if the list is locked
+    :type locked: bool
+    :return: selected value from the list
+    :rtype: str
+    """
+    lower_list = [x.lower() for x in List]
     selected_list_val = ''
     selected_ok = False
     selected_list_no = [index for (index, val) in enumerate(List)]
@@ -253,11 +296,17 @@ def select_val(List, title, input_string, locked=False):
                 print('or')
                 print('Enter a new selection')
             else:
-                print('New selection added {}'.format(selected_val))
-                List.append(selected_val)
-                print(List)
-                selected_list_val = selected_val
-                selected_ok = True
+                if selected_val.strip() == '':
+                    selected_val = 'None'
+                if selected_val.lower() not in lower_list:
+                    print('New selection added {}'.format(selected_val))
+                    List.append(selected_val)
+                    print(List)
+                    selected_list_val = selected_val
+                    selected_ok = True
+                else:
+                    print('Error!!!, {} [ {} ] already exists'.format(input_string, selected_val))
+
     print(selected_list_val)
     return selected_list_val
 
@@ -277,33 +326,39 @@ def list_enumerated(List, enumerated=True):
     print(0, '-', List[0])
 
 
-def list_transactions(test_account):
-    print('[', test_account, ']')
+def list_transactions(account: str):
+    """
+    Prints the list of transactions for the selected account
+
+    :param account: The account name
+    :type account: str
+    """
+    print('[', account, ']')
     print('-' * 18)
     print("{:^10} {:^15} {:<20} {:<20} {:<20}".format('Date', 'Amount', 'Payee', 'Type', 'Memo'))
     print('-' * 89)
-    for t in MY_ACCOUNTS[test_account][0].transactions:
+    for t in MY_ACCOUNTS[account][0].transactions:
         print("{:>10} {:>15,.2f} {:<20} {:<20} {:<20}".format(t[1], t[2], t[3], t[4], t[5]))
     print('-' * 89)
-    print('{:^67} | {:15,.2f} {}'.format('TOTAL AMOUNTS', MY_ACCOUNTS[test_account][0].a_balance, 'LBP'))
+    print('{:^67} | {:15,.2f} {}'.format('TOTAL AMOUNTS', MY_ACCOUNTS[account][0].a_balance,
+                                         MY_ACCOUNTS[account][0].a_currency))
 
 
 def add_account_list():
-    # pass
     add_account(Account('Bank - NBK', 610966.8))
-    # add_account(Account('BOB - Souyoula', 32463))
-    # add_account(Account('Loan - BOB', -20800000))
-    # add_account(Account('Bank - QH Leila', 595, 'USD'))
-    # add_account(Account('Bank - QH Rabih', 740, 'USD'))
-    # add_account(Account('Bank - QH Wafaa', 760, 'USD'))
-    # add_account(Account('Loan - QH Leila', -900, 'USD'))
-    # add_account(Account('Loan - QH Rabih', -1462, 'USD'))
-    # add_account(Account('Loan - QH Wafaa', -1563, 'USD'))
-    # add_account(Account('Loan Ramzi', 3459214, a_type='Cash'))
-    # add_account(Account('Rabih Cash LL', 200000, a_type='Cash'))
-    # add_account(Account('Rabih Saving LL', 1220000, a_type='Cash'))
-    # add_account(Account('Rabih Saving Snack', 12000, a_type='Cash'))
-    # add_account(Account('Rabih Cash USD', 321, a_currency='USD', a_type='Cash'))
+    add_account(Account('BOB - Souyoula', 32463))
+    add_account(Account('Loan - BOB', -20800000))
+    add_account(Account('Bank - QH Leila', 595, 'USD'))
+    add_account(Account('Bank - QH Rabih', 740, 'USD'))
+    add_account(Account('Bank - QH Wafaa', 760, 'USD'))
+    add_account(Account('Loan - QH Leila', -900, 'USD'))
+    add_account(Account('Loan - QH Rabih', -1462, 'USD'))
+    add_account(Account('Loan - QH Wafaa', -1563, 'USD'))
+    add_account(Account('Loan Ramzi', 3459214, a_type='Cash'))
+    add_account(Account('Rabih Cash LL', 200000, a_type='Cash'))
+    add_account(Account('Rabih Saving LL', 1220000, a_type='Cash'))
+    add_account(Account('Rabih Saving Snack', 12000, a_type='Cash'))
+    add_account(Account('Rabih Cash USD', 321, a_currency='USD', a_type='Cash'))
 
 
 def print_account_list() -> int:
