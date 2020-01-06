@@ -233,7 +233,7 @@ def select_val(List, title, input_string, locked=False):
         clear_screen()
         print_title(title)
         list_enumerated(List)
-        selected_val = input('Enter ' + input_string + ':')
+        selected_val = input('Enter ' + input_string + ': ')
         try:
             if selected_val == '':
                 print('Invalid selection choose from list')
