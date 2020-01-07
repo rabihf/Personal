@@ -14,7 +14,7 @@ MY_ACCOUNTS = {'Cancel': []}
 DOLLAR_RATE = 1500
 DATE_FORMAT = '%d-%m-%Y'
 
-MAIN_MENU = ['Exit', 'Add New Account', 'Add Transaction', 'List Accounts']
+MAIN_MENU = ['Exit', 'Add New Account', 'Add Transaction', 'List Accounts', 'List Transactions']
 
 A_CURRENCIES = ['Cancel', 'LBP', 'USD', 'EUR']
 A_TYPE = ['Cancel', 'Bank', 'Cash']
@@ -64,12 +64,22 @@ class Account:
 
 
 def clear_screen():
+    """
+    This utility clears the screen in terminal on Both OS, Windows and Mac
+
+    """
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def pause(text: str) -> None:
+def pause(text: str = 'Press RETURN key to continue...'):
+    """
+    This is a utility that prints a message to the user
+    and waits to press the RETURN key
+
+    :param text: The text to display
+    :type text: str
+    """
     input(text)
-    return None
 
 
 def add_new_account() -> str:
@@ -110,6 +120,7 @@ def add_new_account() -> str:
                 A: Account = Account(a_name, a_opening_balance, a_currency, a_type)
                 # update MY_ACCOUNT dict
                 MY_ACCOUNTS[a_name] = [A]
+            print('Account {} created...'.format(a_name))
             created_ok = True
             return a_name
         except Exception as e:
@@ -134,81 +145,78 @@ def add_account(A: Account) -> bool:
         return False
 
 
-def main_menu2():
+def main_menu():
     choice = ''
     while choice != 'Exit':
         choice = select_val(MAIN_MENU, 'MAIN MENU', 'a selection 0 to exit', True)
         print('choice:', choice)
         if choice == MAIN_MENU[1]:
             add_new_account()
+            pause()
         elif choice == MAIN_MENU[2]:
-            # TODO: check this choice
-            add_transaction_menu()
+            print('No of transactions:', add_transaction_menu())
+            pause()
         elif choice == MAIN_MENU[3]:
-            print('No of accounts:', list_accounts_menu())
+            print('No of accounts:', print_account_list())
+            pause()
+        elif choice == MAIN_MENU[4]:
+            List = [account for account in MY_ACCOUNTS]
+            selected_account = select_val(List, 'ACCOUNT LIST', 'account no', True)
+            if selected_account != '':
+                print('No of transactions:', list_transactions(selected_account))
+            pause()
         elif choice == MAIN_MENU[0]:
             return 0
 
 
-"""
-def main_menu():
-    choice = -1
-    while choice != 0:
-        print('1 - Add Transaction')
-        print('2 - List Accounts')
-        print('0 - Exit')
-        choice = int(input('Enter a choice, 0 to Exit:'))
-        if choice == 1:
-            add_transaction_menu()
-        elif choice == 2:
-            list_accounts_menu()
-        elif choice == 0:
-            return 0
-"""
+def add_transaction_menu() -> int:
+    """
+    Add a new transaction and returns the total transactions of this account
 
-
-def list_accounts_menu():
-    clear_screen()
-    print_title('List Accounts')
-    return print_account_list()
-
-
-def add_transaction_menu():
-    # TODO: check this function
-    selected_list_no = [account for (index, account) in enumerate(MY_ACCOUNTS)]
-    selected_account = select_val(selected_list_no, 'ACCOUNT LIST', 'Account no', True)
-    # print('selected_account:', selected_account)
+    :return:  No of transaction for the specified account
+    :rtype: int
+    """
+    # Choose an account
+    List = [account for account in MY_ACCOUNTS]
+    selected_account = select_val(List, 'ACCOUNT LIST', 'account no', True)
     if selected_account == 'Cancel':
-        # return
-        # elif selected_account not in MY_ACCOUNTS:
-        # else:
+        # Add new account
         selected_account = add_new_account()
         if selected_account == '':
-            return
+            return 0
         else:
             print('New Account added {}'.format(selected_account))
-
-        # add_account(Account(selected_account))
-
-    add_transaction(selected_account)
+    nb_transactions = add_transaction(selected_account)
+    return nb_transactions
 
 
-def print_title(TITLE):
+def print_title(TITLE: str):
+    """
+    This utility prints the text and an underline
+
+    :param TITLE: the text to be displayed
+    :type TITLE: str
+    """
     print(TITLE)
     print('-' * len(TITLE))
 
 
 def main():
-    # A: Account
+    # adds the defaults accounts with beginning balances
     add_account_list()
-    # add_new_account()
-    # print(MY_ACCOUNTS)
-    # print_account_list()
-    # main_menu()
-    main_menu2()
+    # displays the main menu
+    main_menu()
 
 
-def add_transaction(account):
+def add_transaction(account: str) -> int:
+    """
+    Adds new transaction for the selected account if exists or creates a new one
+
+    :param account: the account name
+    :type account: str
+    :return: No of transactions for the specified account
+    :rtype: int
+    """
     # TODO: check the t_date + Add transfer transaction type
     list_transactions(account)
     selection_ok = False
@@ -218,7 +226,7 @@ def add_transaction(account):
         try:
             t_type = select_val(T_TYPE, 'New Transaction', 'Type of Transaction', True)
             if t_type == 'Cancel':
-                return
+                return 0
 
             t_date = input('Date               :')
             if t_date == '':
@@ -229,19 +237,19 @@ def add_transaction(account):
                     t_amount = float(input('Amount             :'))
                     if t_amount == 0:
                         print('Error, amount could not be {}'.format(t_amount))
-                        return
+                        return 0
                     else:
                         t_amount_ok = True
                 except ValueError as v:
                     print('Error!!!, ', v)
-                    return
+                    return 0
 
             t_payee = select_val(T_PAYEE, 'PAYEES', 'Payee')
             if t_payee == '':
-                return
+                return 0
             t_exp_type = select_val(T_EXPENSE_TYPE, 'EXPENSES/INCOMES TYPES', 'Expense/Income Type')
             if t_exp_type == '':
-                return
+                return 0
             t_memo = select_val(T_MEMO, 'MEMO', 'Memo')
 
             MY_ACCOUNTS[account][0].Transaction(t_type, t_date, t_amount, t_payee, t_exp_type, t_memo)
@@ -249,6 +257,7 @@ def add_transaction(account):
         except Exception as e:
             print('Error, ', e)
     list_transactions(account)
+    return len(MY_ACCOUNTS[account][0].transactions)
 
 
 def select_val(List: list, title: str, input_string: str, locked: bool = False) -> str:
@@ -271,7 +280,6 @@ def select_val(List: list, title: str, input_string: str, locked: bool = False) 
     selected_list_val = ''
     selected_ok = False
     selected_list_no = [index for (index, val) in enumerate(List)]
-    print(selected_list_no)
     while not selected_ok:
         clear_screen()
         print_title(title)
@@ -283,7 +291,6 @@ def select_val(List: list, title: str, input_string: str, locked: bool = False) 
                 print('or')
                 print('Enter a new selection')
             elif int(selected_val) in selected_list_no:
-                print(List[int(selected_val)])
                 selected_list_val = List[int(selected_val)]
                 selected_ok = True
             else:
@@ -301,17 +308,23 @@ def select_val(List: list, title: str, input_string: str, locked: bool = False) 
                 if selected_val.lower() not in lower_list:
                     print('New selection added {}'.format(selected_val))
                     List.append(selected_val)
-                    print(List)
                     selected_list_val = selected_val
                     selected_ok = True
                 else:
                     print('Error!!!, {} [ {} ] already exists'.format(input_string, selected_val))
 
-    print(selected_list_val)
     return selected_list_val
 
 
-def list_enumerated(List, enumerated=True):
+def list_enumerated(List: list, enumerated: bool = True):
+    """
+    This utility prints and enumerates any list
+
+    :param List: any list
+    :type List: list
+    :param enumerated: [True|False] default value True
+    :type enumerated: bool
+    """
     if len(List) == 1:
         print('Empty List')
     else:
@@ -326,25 +339,36 @@ def list_enumerated(List, enumerated=True):
     print(0, '-', List[0])
 
 
-def list_transactions(account: str):
+def list_transactions(account: str) -> int:
     """
     Prints the list of transactions for the selected account
 
     :param account: The account name
     :type account: str
+    :return: No of transactions for the specified account
+    :rtype: int
     """
     print('[', account, ']')
-    print('-' * 18)
-    print("{:^10} {:^15} {:<20} {:<20} {:<20}".format('Date', 'Amount', 'Payee', 'Type', 'Memo'))
-    print('-' * 89)
-    for t in MY_ACCOUNTS[account][0].transactions:
-        print("{:>10} {:>15,.2f} {:<20} {:<20} {:<20}".format(t[1], t[2], t[3], t[4], t[5]))
-    print('-' * 89)
-    print('{:^67} | {:15,.2f} {}'.format('TOTAL AMOUNTS', MY_ACCOUNTS[account][0].a_balance,
-                                         MY_ACCOUNTS[account][0].a_currency))
+    print('-' * (len(account) + 4))
+    if len(MY_ACCOUNTS[account][0].transactions) == 0:
+        print('No Transactions available.')
+    else:
+        print("{:^10} {:^15} {:<20} {:<20} {:<20}".format('Date', 'Amount', 'Payee', 'Type', 'Memo'))
+        print('-' * 89)
+        for t in MY_ACCOUNTS[account][0].transactions:
+            print("{:>10} {:>15,.2f} {:<20} {:<20} {:<20}".format(t[1], t[2], t[3], t[4], t[5]))
+        print('-' * 89)
+        print('{:^67} | {:15,.2f} {}'.format('TOTAL AMOUNTS', MY_ACCOUNTS[account][0].a_balance,
+                                             MY_ACCOUNTS[account][0].a_currency))
+
+    return len(MY_ACCOUNTS[account][0].transactions)
 
 
 def add_account_list():
+    """
+    Adds the default opening balance for the available accounts.
+
+    """
     add_account(Account('Bank - NBK', 610966.8))
     add_account(Account('BOB - Souyoula', 32463))
     add_account(Account('Loan - BOB', -20800000))
@@ -368,6 +392,8 @@ def print_account_list() -> int:
     :return: nb of accounts
     :rtype: int
     """
+    clear_screen()
+    print_title('List Accounts')
     if len(MY_ACCOUNTS) == 1:
         print('No Accounts available.')
     else:
